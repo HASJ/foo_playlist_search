@@ -2,7 +2,7 @@
 
 A [foobar2000](https://www.foobar2000.org/) component that adds a hotkey-summoned quick search window for the active playlist.
 
-![Playlist search dialog](screenshot.png)
+<img width="1047" height="614" alt="image" src="https://github.com/user-attachments/assets/53858de1-6082-4866-a6ae-4b7e5d33d086" />
 
 ## Features
 
@@ -13,6 +13,7 @@ A [foobar2000](https://www.foobar2000.org/) component that adds a hotkey-summone
 - Info pane showing details of the focused track
 - Row and info pane formats are configurable with title formatting (Preferences > Tools > Playlist Search)
 - Dark mode support, remembers window size and position
+- Does not summon foobar2000 into focus when playing a song
 
 ## Installation
 
