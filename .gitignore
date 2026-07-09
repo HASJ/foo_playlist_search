@@ -1,0 +1,17 @@
+# foobar2000 SDK — download from https://www.foobar2000.org/SDK and extract into the repo root
+/foobar2000/*
+!/foobar2000/foo_playlist_search/
+/libPPUI/
+/pfc/
+/wtl/
+/sdk-license.txt
+/sdk-readme.html
+
+# Build output
+Release*/
+Debug*/
+x64/
+foo_play.E4C778C2/
+.vs/
+*.user
+*.fb2k-component
