@@ -215,5 +215,16 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="PackageFb2kComponent" AfterTargets="Build" Condition="'$(Configuration)'=='Release'">
+    <PropertyGroup>
+      <Fb2kPackageScript>$(MSBuildProjectDirectory)\..\..\scripts\package-component.ps1</Fb2kPackageScript>
+      <Fb2kPackageX86Dll>$(MSBuildProjectDirectory)\Release\foo_playlist_search.dll</Fb2kPackageX86Dll>
+      <Fb2kPackageX64Dll>$(MSBuildProjectDirectory)\x64\Release\foo_playlist_search.dll</Fb2kPackageX64Dll>
+      <Fb2kPackageOutput>$(MSBuildProjectDirectory)\..\..\foo_playlist_search.fb2k-component</Fb2kPackageOutput>
+    </PropertyGroup>
+    <Message Importance="high" Condition="Exists('$(Fb2kPackageX86Dll)') and Exists('$(Fb2kPackageX64Dll)')" Text="Packaging $(Fb2kPackageOutput)" />
+    <Exec Condition="Exists('$(Fb2kPackageX86Dll)') and Exists('$(Fb2kPackageX64Dll)')" Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(Fb2kPackageScript)&quot; -X86Dll &quot;$(Fb2kPackageX86Dll)&quot; -X64Dll &quot;$(Fb2kPackageX64Dll)&quot; -OutputPath &quot;$(Fb2kPackageOutput)&quot;" />
+    <Message Importance="normal" Condition="!Exists('$(Fb2kPackageX86Dll)') or !Exists('$(Fb2kPackageX64Dll)')" Text="Skipping component package; build both Release x86 and Release x64 first." />
+  </Target>
   <ImportGroup Label="ExtensionTargets" />
 </Project>

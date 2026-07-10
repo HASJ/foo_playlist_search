@@ -26,6 +26,7 @@ A [foobar2000](https://www.foobar2000.org/) component that adds a hotkey-summone
 1. Download the [foobar2000 SDK](https://www.foobar2000.org/SDK) and extract it into the repository root (it provides `foobar2000/`, `pfc/`, `libPPUI/`).
 2. Place [WTL](https://sourceforge.net/projects/wtl/) in `wtl/` and add its `Include` directory to your MSBuild user property sheets (or the project's include paths).
 3. Open `foobar2000/foo_playlist_search/foo_playlist_search.sln` in Visual Studio and build Release for Win32 and/or x64.
+   Building both Release x86 and Release x64 automatically writes `foo_playlist_search.fb2k-component` to the repository root.
 
 ## License
 
