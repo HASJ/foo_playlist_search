@@ -12,6 +12,8 @@ Release*/
 Debug*/
 x64/
 foo_play.E4C778C2/
-.vs/
+.vscode/
+.agents/
+AGENTS.md
 *.user
 *.fb2k-component
