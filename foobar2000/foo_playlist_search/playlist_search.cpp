@@ -18,16 +18,20 @@
 static constexpr GUID guid_cfg_rowFormat = { 0x875f43f2, 0x0b68, 0x4be2, { 0x81, 0x9c, 0xb9, 0xd7, 0x98, 0x32, 0xb8, 0x28 } };
 // {F920ED44-1A17-4DDE-82A3-01E09C37D3ED}
 static constexpr GUID guid_cfg_infoFormat = { 0xf920ed44, 0x1a17, 0x4dde, { 0x82, 0xa3, 0x01, 0xe0, 0x9c, 0x37, 0xd3, 0xed } };
+// {D1A8C4DB-0D12-45BE-9E4B-B3F0A9A7E4E9}
+static constexpr GUID guid_cfg_titleFormat = { 0xd1a8c4db, 0x0d12, 0x45be, { 0x9e, 0x4b, 0xb3, 0xf0, 0xa9, 0xa7, 0xe4, 0xe9 } };
 // {E064CA33-53DF-4DF1-B7E5-F476449827BA}
 static constexpr GUID guid_cfg_popupPosition = { 0xe064ca33, 0x53df, 0x4df1, { 0xb7, 0xe5, 0xf4, 0x76, 0x44, 0x98, 0x27, 0xba } };
 // {7F66295E-5D85-4BE4-89C4-891F858DD69F}
 static constexpr GUID guid_menu_command = { 0x7f66295e, 0x5d85, 0x4be4, { 0x89, 0xc4, 0x89, 0x1f, 0x85, 0x8d, 0xd6, 0x9f } };
 
 const char default_rowFormat[] = "[%album artist% - ]['['%date%']' ]%album%|[[%discnumber%.][%tracknumber%. ]][%track artist% - ]%title%";
-const char default_infoFormat[] = "Title: %title%$crlf()Artist: %artist%$crlf()Album: %album%$crlf()Time: [%length%][ | %codec%][ | %bitrate% kbps]$crlf()Path: %path%";
+const char default_infoFormat[] = "Title: %title%\nArtist: %artist%\nAlbum: %album%\nTime: [%length%][ | %codec%][ | %bitrate% kbps]\nPath: %path%";
+const char default_titleFormat[] = "Quick playlist search";
 
 cfg_string cfg_rowFormat(guid_cfg_rowFormat, default_rowFormat);
 cfg_string cfg_infoFormat(guid_cfg_infoFormat, default_infoFormat);
+cfg_string cfg_titleFormat(guid_cfg_titleFormat, default_titleFormat);
 static cfgDialogPosition cfg_popupPosition(guid_cfg_popupPosition);
 
 namespace {
@@ -83,11 +87,12 @@ static struct {
 
 	void ensureFresh() {
 		if (!dirty) return;
-		rows.clear();
 		auto api = playlist_manager::get();
+		const t_size count = api->activeplaylist_get_item_count();
+		console::printf("foo_playlist_search: Rebuilding playlist index (%u items)...", (unsigned)count);
+		rows.clear();
 		titleformat_object::ptr script;
 		titleformat_compiler::get()->compile_safe(script, cfg_rowFormat.get());
-		const t_size count = api->activeplaylist_get_item_count();
 		rows.reserve(count);
 		pfc::string8 temp;
 		for (t_size i = 0; i < count; ++i) {
@@ -122,10 +127,18 @@ public:
 		MSG_WM_KEYDOWN(OnSearchKeyDown)
 	END_MSG_MAP()
 
-	void RefreshIndex() {
+	void RefreshIndex(bool selectPlaying = false) {
 		g_index.ensureFresh();
-		titleformat_compiler::get()->compile_safe(m_scriptInfo, cfg_infoFormat.get());
-		ApplyFilter();
+		std::string fmt = cfg_infoFormat.get();
+		for (size_t pos = 0; (pos = fmt.find("\r\n", pos)) != std::string::npos; pos += 7) {
+			fmt.replace(pos, 2, "$crlf()");
+		}
+		for (size_t pos = 0; (pos = fmt.find('\n', pos)) != std::string::npos; pos += 7) {
+			fmt.replace(pos, 1, "$crlf()");
+		}
+		titleformat_compiler::get()->compile_safe(m_scriptInfo, fmt.c_str());
+		titleformat_compiler::get()->compile_safe(m_scriptTitle, cfg_titleFormat.get());
+		ApplyFilter(selectPlaying);
 	}
 
 	void FocusSearchBox() {
@@ -152,7 +165,7 @@ private:
 		m_dark.AddDialogWithControls(*this);
 		m_list.SetSelectionModeSingle();
 		// no AddColumn call: headerless single-column mode, full item width
-		RefreshIndex();
+		RefreshIndex(true);
 		ShowWindow(SW_SHOW);
 		return TRUE; // system sets focus to first tabstop = search box
 	}
@@ -184,7 +197,7 @@ private:
 		SetMsgHandled(FALSE);
 	}
 
-	void ApplyFilter() {
+	void ApplyFilter(bool selectPlaying = false) {
 		pfc::string8 text;
 		uGetDlgItemText(*this, IDC_SEARCH, text);
 		const auto words = splitQuery(text);
@@ -195,11 +208,23 @@ private:
 		}
 		m_list.ReloadData();
 		if (!m_view.empty()) {
-			m_list.SetFocusItem(0);
-			m_list.SetSelection(pfc::bit_array_true(), pfc::bit_array_one(0));
-			m_list.EnsureItemVisible(0);
+			size_t initial = 0;
+			if (selectPlaying) {
+				t_size playingPlaylist, playingItem;
+				if (playlist_manager::get()->get_playing_item_location(&playingPlaylist, &playingItem)
+					&& playingPlaylist == playlist_manager::get()->get_active_playlist()) {
+					for (size_t i = 0; i < m_view.size(); ++i) {
+						if (m_view[i] == playingItem) { initial = i; break; }
+					}
+				}
+			}
+			m_list.SetFocusItem(initial);
+			m_list.SetSelection(pfc::bit_array_true(), pfc::bit_array_one(initial));
+			m_list.EnsureItemVisible(initial);
 		}
+		console::printf("foo_playlist_search: Found %u matches for '%s'", (unsigned)m_view.size(), text.get_ptr());
 		UpdateInfoPane();
+		UpdateWindowTitle();
 	}
 
 	void UpdateInfoPane() {
@@ -218,9 +243,21 @@ private:
 		uSetDlgItemText(*this, IDC_INFO, crlf);
 	}
 
+	void UpdateWindowTitle() {
+		pfc::string8 out;
+		const size_t focus = m_list.GetFocusItem();
+		if (focus < m_view.size() && m_scriptTitle.is_valid()) {
+			playlist_manager::get()->activeplaylist_item_format_title(m_view[focus], nullptr, out, m_scriptTitle, nullptr, play_control::display_level_all);
+		} else {
+			out = cfg_titleFormat.get();
+		}
+		uSetWindowText(*this, out);
+	}
+
 	void PlayFocused() {
 		const size_t focus = m_list.GetFocusItem();
 		if (focus >= m_view.size()) return;
+		console::printf("foo_playlist_search: Executing item %u", (unsigned)m_view[focus]);
 		playlist_manager::get()->activeplaylist_execute_default_action(m_view[focus]);
 		DestroyWindow();
 	}
@@ -235,6 +272,7 @@ private:
 	}
 	void listItemAction(ctx_t, size_t item) override { // double-click / Enter in list
 		if (item < m_view.size()) {
+			console::printf("foo_playlist_search: Executing item %u", (unsigned)m_view[item]);
 			playlist_manager::get()->activeplaylist_execute_default_action(m_view[item]);
 			// deferred close: destroying the dialog here would free the list control mid-callback
 			PostMessage(WM_CLOSE);
@@ -242,15 +280,18 @@ private:
 	}
 	void listFocusChanged(ctx_t) override {
 		UpdateInfoPane();
+		UpdateWindowTitle();
 	}
 	void listSelChanged(ctx_t) override {
 		UpdateInfoPane();
+		UpdateWindowTitle();
 	}
 
 	static const CDialogResizeHelper::Param resizeTable[5];
 
 	std::vector<size_t> m_view; // filtered view: positions in g_index.rows == playlist item indices
 	titleformat_object::ptr m_scriptInfo;
+	titleformat_object::ptr m_scriptTitle;
 	CListControlOwnerData m_list;
 	CContainedWindowT<CEdit> m_search;
 	CDialogResizeHelperPT m_resizer;
@@ -269,11 +310,15 @@ CSearchDlg* CSearchDlg::g_dlg = nullptr;
 
 void SpawnOrFocus() {
 	auto dlg = CSearchDlg::g_dlg;
+	if (dlg == nullptr) {
+		console::print("foo_playlist_search: Creating search dialog.");
+		dlg = fb2k::newDialogEx<CSearchDlg>((HWND)nullptr);
+	} else {
+		console::print("foo_playlist_search: Bringing search dialog to foreground.");
+	}
 	if (dlg != nullptr) {
 		::SetForegroundWindow(*dlg);
 		dlg->FocusSearchBox();
-	} else {
-		fb2k::newDialog<CSearchDlg>();
 	}
 }
 

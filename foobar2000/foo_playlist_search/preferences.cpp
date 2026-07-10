@@ -45,12 +45,15 @@ public:
 		cfg_rowFormat = text;
 		uGetDlgItemText(*this, IDC_INFO_FORMAT, text);
 		cfg_infoFormat = fromCtrl(text);
+		uGetDlgItemText(*this, IDC_TITLE_FORMAT, text);
+		cfg_titleFormat = text;
 		playlistSearchInvalidateIndex();
 		OnChanged();
 	}
 	void reset() override {
 		uSetDlgItemText(*this, IDC_ROW_FORMAT, default_rowFormat);
 		uSetDlgItemText(*this, IDC_INFO_FORMAT, toCtrl(default_infoFormat));
+		uSetDlgItemText(*this, IDC_TITLE_FORMAT, default_titleFormat);
 		OnChanged();
 	}
 
@@ -64,6 +67,7 @@ private:
 		m_dark.AddDialogWithControls(*this);
 		uSetDlgItemText(*this, IDC_ROW_FORMAT, cfg_rowFormat.get());
 		uSetDlgItemText(*this, IDC_INFO_FORMAT, toCtrl(cfg_infoFormat.get()));
+		uSetDlgItemText(*this, IDC_TITLE_FORMAT, cfg_titleFormat.get());
 		return FALSE;
 	}
 	void OnEditChange(UINT, int, CWindow) {
@@ -74,7 +78,9 @@ private:
 		uGetDlgItemText(*this, IDC_ROW_FORMAT, text);
 		if (strcmp(text, cfg_rowFormat.get()) != 0) return true;
 		uGetDlgItemText(*this, IDC_INFO_FORMAT, text);
-		return strcmp(fromCtrl(text), cfg_infoFormat.get()) != 0;
+		if (strcmp(fromCtrl(text), cfg_infoFormat.get()) != 0) return true;
+		uGetDlgItemText(*this, IDC_TITLE_FORMAT, text);
+		return strcmp(text, cfg_titleFormat.get()) != 0;
 	}
 	void OnChanged() {
 		m_callback->on_state_changed();

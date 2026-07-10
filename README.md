@@ -18,8 +18,8 @@ A [foobar2000](https://www.foobar2000.org/) component that adds a hotkey-summone
 ## Installation
 
 1. Grab `foo_playlist_search.fb2k-component` from the [Releases](../../releases) page (contains both 32-bit and 64-bit binaries).
-2. In foobar2000, go to *Preferences > Components > Install...*, pick the file and restart.
-3. Bind a shortcut to *View / Quick playlist search* in *Preferences > Keyboard Shortcuts* (the command is hidden from the menu by default).
+2. In foobar2000, go to _Preferences > Components > Install..._, pick the file and restart.
+3. Bind a shortcut to _View / Quick playlist search_ in _Preferences > Keyboard Shortcuts_ (the command is hidden from the menu by default).
 
 ## Building
 
